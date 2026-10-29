@@ -188,7 +188,7 @@ setInterval(() => {
   const mem = performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB' : 'n/d';
   $('stats').textContent =
     `FPS ${fps} | heap ${mem}\n` +
-    `FOV principal ${main.state.hFov.toFixed(1)}° | FOV lupa ${(st.lastLensFov ?? 0).toFixed(2)}°\n` +
+    `FOV ${main.state.hFov.toFixed(1)}° | lupa ${(st.lastLensFov ?? 0).toFixed(2)}°\n` +
     `tiles L0:${st.tileReq[0]} L1:${st.tileReq[1]} L2:${st.tileReq[2]}`;
 }, 500);
 
