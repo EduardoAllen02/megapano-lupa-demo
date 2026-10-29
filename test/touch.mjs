@@ -35,7 +35,7 @@ await touch('touchEnd', []); await sleep(400);
 s = await ev(`document.getElementById('lens').style.display`);
 log('M4 lupa se oculta al soltar', s === 'none', s);
 // lupa 240px en pantalla de 390: dentro de pantalla?
-await touch('touchStart', [[375, 90]]); await sleep(400);
+await touch('touchStart', [[30, 90]]); await sleep(400);
 s = await ev(`(() => { const r = document.getElementById('lens').getBoundingClientRect(); return JSON.stringify({l: r.left, t: r.top, r: r.right, b: r.bottom, W: innerWidth}); })()`);
 const r = JSON.parse(s);
 await shot('s_touch_edge.png');

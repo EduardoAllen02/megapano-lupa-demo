@@ -37,7 +37,7 @@ const main = new Viewer({
   container: mainEl,
   adapter,
   panorama,
-  navbar: ['zoomOut', 'zoomRange', 'zoomIn', 'move', 'fullscreen'],
+  navbar: false,
   minFov: MAIN_FOV.min,
   maxFov: MAIN_FOV.max,
   defaultZoomLvl: 40,
@@ -124,16 +124,49 @@ main.addEventListener('zoom-updated', schedule);
 main.addEventListener('size-updated', schedule);
 main.addEventListener('ready', schedule);
 
-// --- Atajos (sin UI extra; la UI son los controles de PSV, ver index.html) ---------------------
+// --- Navegación propia: zoom, flechas (mantener presionado) y pantalla completa ------------------
+// (la barra de PSV colapsa botones solos y su fullscreen deja fuera la lupa y los paneles)
+const zoomSlider = $('rng-zoom');
+const syncZoom = () => { zoomSlider.value = main.getZoomLevel(); };
+main.addEventListener('zoom-updated', syncZoom);
+main.addEventListener('ready', syncZoom);
+zoomSlider.oninput = (e) => main.zoom(+e.target.value);
+$('z-in').onclick = () => main.zoom(Math.min(100, main.getZoomLevel() + 10));
+$('z-out').onclick = () => main.zoom(Math.max(0, main.getZoomLevel() - 10));
+for (const btn of document.querySelectorAll('#nav [data-dir]')) {
+  const [dx, dy] = btn.dataset.dir.split(',').map(Number);
+  let raf = 0;
+  const step = () => {
+    const p = main.getPosition();
+    const k = (main.state.hFov / 100) * 0.012; // rad/frame, proporcional al FOV
+    main.rotate({ yaw: p.yaw + dx * k, pitch: Math.max(-1.55, Math.min(1.55, p.pitch + dy * k)) });
+    raf = requestAnimationFrame(step);
+  };
+  const stop = () => cancelAnimationFrame(raf);
+  btn.addEventListener('pointerdown', (e) => { btn.setPointerCapture(e.pointerId); stop(); step(); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btn.addEventListener(ev, stop);
+}
+$('fs').onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.();
+};
+
+// --- Controles de la lupa (panel debajo de la barra de PSV) -------------------------------------
 const MAG = { min: 2, max: 16 };
-function setLens(on) { st.lensOn = on; schedule(); }
-function setMag(v) { st.mag = Math.max(MAG.min, Math.min(MAG.max, v)); schedule(); }
-function setSize(px) { st.size = px; schedule(); }
+function setLens(on) { st.lensOn = on; $('chk-lens').checked = on; schedule(); }
+function setMag(v) {
+  st.mag = Math.max(MAG.min, Math.min(MAG.max, v));
+  $('rng-mag').value = st.mag; $('v-mag').textContent = st.mag + 'x'; schedule();
+}
+function setSize(px) { st.size = px; $('rng-size').value = px; $('v-size').textContent = px + 'px'; schedule(); }
+$('chk-lens').onchange = (e) => setLens(e.target.checked);
+$('rng-mag').oninput = (e) => setMag(+e.target.value);
+$('rng-size').oninput = (e) => setSize(+e.target.value);
 window.addEventListener('keydown', (e) => {
   if (e.key === 'l' || e.key === 'L') setLens(!st.lensOn);
   if (e.key === '+' || e.key === '=') setMag(st.mag + 1);
   if (e.key === '-') setMag(st.mag - 1);
-  if (e.key === 'd' || e.key === 'D') $('stats').classList.toggle('debug'); // métricas
+  if (e.key === 'd' || e.key === 'D') $('panel').classList.toggle('compact'); // ocultar/mostrar métricas
 });
 
 // --- Métricas ----------------------------------------------------------------------------------
@@ -156,7 +189,7 @@ setInterval(() => {
   $('stats').textContent =
     `FPS ${fps} | heap ${mem}\n` +
     `FOV principal ${main.state.hFov.toFixed(1)}° | FOV lupa ${(st.lastLensFov ?? 0).toFixed(2)}°\n` +
-    `tiles pedidos  L0:${st.tileReq[0]} L1:${st.tileReq[1]} L2:${st.tileReq[2]}`;
+    `tiles L0:${st.tileReq[0]} L1:${st.tileReq[1]} L2:${st.tileReq[2]}`;
 }, 500);
 
 // Para pruebas funcionales desde CDP

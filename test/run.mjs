@@ -106,6 +106,38 @@ await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5000, y: 5000 })
 await ev(`document.getElementById('main').dispatchEvent(new PointerEvent('pointerleave'))`); await sleep(300); s = await lensState();
 check('T13 lupa se oculta al salir', s.display === 'none');
 
+
+// --- Controles de navegación y panel ---
+const rect = (sel) => ev(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+const click = async (sel) => { const { x, y } = await rect(sel); await move(x, y); await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1 }); await sleep(250); await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', buttons: 0, clickCount: 1 }); await sleep(150); };
+await ev('app.main.rotate({yaw:0, pitch:0}); app.main.zoom(40); null'); await sleep(400);
+let z0 = await ev('app.main.getZoomLevel()');
+await click('#z-in'); await sleep(600);
+let z1 = await ev('app.main.getZoomLevel()');
+check('T15 botón + acerca y mueve el slider', z1 > z0 && Math.abs(+(await ev("document.getElementById('rng-zoom').value")) - z1) < 1.5, `${z0.toFixed(0)} → ${z1.toFixed(0)}`);
+await click('#z-out'); await click('#z-out'); await sleep(600);
+check('T16 botón − aleja', (await ev('app.main.getZoomLevel()')) < z1);
+const yw0 = await ev('app.main.getPosition().yaw');
+await click('#nav [data-dir="1,0"]'); await sleep(300);
+const yw1 = await ev('app.main.getPosition().yaw');
+check('T17 flecha derecha gira (yaw sube) al mantener', yw1 > yw0 + 0.02, `Δ=${(yw1 - yw0).toFixed(3)} rad`);
+await sleep(300);
+const yw2 = await ev('app.main.getPosition().yaw'); await sleep(300);
+check('T17b al soltar se detiene', Math.abs((await ev('app.main.getPosition().yaw')) - yw2) < 1e-6);
+const pt0 = await ev('app.main.getPosition().pitch');
+await click('#nav [data-dir="0,1"]'); await sleep(200);
+check('T18 flecha arriba sube pitch', (await ev('app.main.getPosition().pitch')) > pt0 + 0.01);
+await ev('app.main.zoom(40); null'); await sleep(300);
+await ev("(() => { const r = document.getElementById('rng-zoom'); r.value = 90; r.dispatchEvent(new Event('input')); })()"); await sleep(600);
+check('T19 slider de zoom controla el visor', (await ev('app.main.getZoomLevel()')) > 85);
+await ev("(() => { const r = document.getElementById('rng-mag'); r.value = 9; r.dispatchEvent(new Event('input')); const c = document.getElementById('rng-size'); c.value = 300; c.dispatchEvent(new Event('input')); })()"); await sleep(200);
+check('T20 sliders aumento/tamaño actualizan estado y etiquetas', (await ev('JSON.stringify([app.st.mag, app.st.size, document.getElementById("v-mag").textContent, document.getElementById("v-size").textContent])')) === '[9,300,"9x","300px"]');
+await ev("document.getElementById('chk-lens').click()"); await move(600, 450); await sleep(300);
+check('T21 checkbox apaga la lupa', (await lensState()).display === 'none');
+await ev("document.getElementById('chk-lens').click()"); await ev('app.setMag(4); app.setSize(240); null');
+const over = await rect('#panel'); await move(over.x, over.y); await sleep(300);
+check('T22 lupa oculta sobre el panel', (await lensState()).display === 'none');
+
 // T14 memoria / contextos
 const mem = await ev(`(async () => ({ heapMB: Math.round(performance.memory.usedJSHeapSize/1048576), canv: document.querySelectorAll('canvas').length, tiles: performance.getEntriesByType('resource').filter(e=>/tiles\\/L/.test(e.name)).length, tilesMB: Math.round(performance.getEntriesByType('resource').filter(e=>/tiles\\//.test(e.name)).reduce((a,e)=>a+e.transferSize,0)/1e5)/10 }))()`);
 console.log('INFO  T14', JSON.stringify(mem));

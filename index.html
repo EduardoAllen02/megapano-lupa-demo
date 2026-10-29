@@ -22,43 +22,62 @@
   #lens.plain { box-shadow: none; }
   #lens.plain::after { display: none; }
 
-  /* Controles de PSV reacomodados en la esquina superior derecha: zoom arriba, flechas + pantalla completa abajo */
-  #main .psv-navbar {
-    position: absolute !important; top: 12px !important; right: 12px !important; left: auto !important; bottom: auto !important;
-    width: auto !important; height: auto !important; transform: none !important; opacity: 1 !important;
-    display: grid !important; grid-template-columns: repeat(5, 38px); grid-auto-rows: 38px; gap: 4px; align-items: center; justify-items: center;
-    padding: 8px; border-radius: 16px; background: rgba(20,20,24,.72) !important;
-    backdrop-filter: blur(6px); box-shadow: 0 4px 18px rgba(0,0,0,.4);
+  /* Navegación propia (zoom, flechas, pantalla completa) en la esquina superior derecha */
+  #nav {
+    position: absolute; right: 12px; top: 12px; z-index: 60; width: 222px; box-sizing: border-box;
+    display: grid; grid-template-columns: repeat(5, 38px); grid-auto-rows: 38px; gap: 4px; align-items: center; justify-items: center;
+    padding: 8px; border-radius: 16px; background: rgba(20,20,24,.72); backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0,0,0,.4); user-select: none; touch-action: none;
   }
-  #main .psv-navbar .psv-button { width: 38px; height: 38px; border-radius: 10px; }
-  #main .psv-navbar .psv-button:hover { background: rgba(255,255,255,.14); }
-  #main .psv-navbar .psv-zoom-range.psv-button { grid-column: 2 / 5; width: 100%; height: 38px; margin: 0; padding: 0 8px; box-sizing: border-box; display: flex; align-items: center; }
-  #main .psv-navbar .psv-zoom-range-line { width: 100%; }
-  #main .psv-navbar .psv-button-svg { width: 24px; height: 24px; }
-  #main .psv-navbar .psv-menu-button { display: none; }
-  #main .psv-navbar > :nth-child(1) { grid-area: 1 / 1; }
-  #main .psv-navbar > :nth-child(3) { grid-area: 1 / 5; }
-  #main .psv-navbar > :nth-child(4) { grid-area: 2 / 1; } /* izquierda */
-  #main .psv-navbar > :nth-child(6) { grid-area: 2 / 2; } /* arriba */
-  #main .psv-navbar > :nth-child(7) { grid-area: 2 / 3; } /* abajo */
-  #main .psv-navbar > :nth-child(5) { grid-area: 2 / 4; } /* derecha */
-  #main .psv-navbar > :nth-child(8) { grid-area: 2 / 5; } /* pantalla completa */
-  #stats { display: none; position: absolute; left: 10px; bottom: 10px; z-index: 60; background: rgba(0,0,0,.65); padding: 6px 8px; border-radius: 6px;
-    font-family: ui-monospace, monospace; white-space: pre; font-size: 11px; color: #9f9; }
-  #stats.debug { display: block; }
+  #nav button { width: 38px; height: 38px; border: 0; border-radius: 10px; background: transparent; color: #eee; cursor: pointer; padding: 0; touch-action: none; }
+  #nav button:hover { background: rgba(255,255,255,.14); }
+  #nav button:active { background: rgba(255,255,255,.26); }
+  #nav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #nav input[type=range] { grid-column: 2 / 5; width: 100%; margin: 0; accent-color: #2f7cf6; }
+  /* Panel de la lupa: debajo de la cápsula de navegación, mismo ancho */
+  #panel {
+    position: absolute; right: 12px; top: 120px; z-index: 60; width: 222px; box-sizing: border-box;
+    background: rgba(20,20,24,.72); backdrop-filter: blur(6px); color: #eee; border-radius: 16px;
+    padding: 10px 12px; font-size: 13px; box-shadow: 0 4px 18px rgba(0,0,0,.4); user-select: none;
+  }
+  #panel label.chk { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+  #panel label.chk input { width: 16px; height: 16px; accent-color: #2f7cf6; }
+  #panel .row { display: grid; grid-template-columns: 58px 1fr 38px; align-items: center; gap: 6px; margin-top: 8px; }
+  #panel .row span:first-child { opacity: .8; font-size: 12px; }
+  #panel .row span:last-child { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+  #panel input[type=range] { width: 100%; margin: 0; accent-color: #2f7cf6; }
+  #stats { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.14); font-family: ui-monospace, monospace;
+    white-space: pre; font-size: 10.5px; line-height: 1.5; color: #9f9; }
+  #panel.compact #stats { display: none; }
   #credit {
     position: absolute; left: 10px; top: 8px; z-index: 55; font-size: 11px; color: rgba(255,255,255,.75);
     text-shadow: 0 1px 3px #000; max-width: 55vw;
   }
   #credit a { color: inherit; }
-  @media (max-width: 520px) { #credit { display: none; } }
+  @media (max-width: 520px) { #credit { display: none; } #stats { display: none; } }
 </style>
 </head>
 <body>
 <div id="main"></div>
 <div id="lens"><div id="lens-view"></div></div>
 
-<div id="stats">cargando…</div>
+<div id="nav">
+  <button id="z-out" title="Alejar (rueda)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button>
+  <input type="range" id="rng-zoom" min="0" max="100" step="1" value="40" title="Zoom">
+  <button id="z-in" title="Acercar (rueda)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6M11 8v6"/></svg></button>
+  <button data-dir="-1,0" title="Girar a la izquierda"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+  <button data-dir="0,1" title="Mirar arriba"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+  <button data-dir="0,-1" title="Mirar abajo"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+  <button data-dir="1,0" title="Girar a la derecha"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  <button id="fs" title="Pantalla completa"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+
+<div id="panel">
+  <label class="chk"><input type="checkbox" id="chk-lens" checked> Lupa (tecla L)</label>
+  <div class="row"><span>Aumento</span><input type="range" id="rng-mag" min="2" max="16" step="1" value="4"><span id="v-mag">4x</span></div>
+  <div class="row"><span>Tamaño</span><input type="range" id="rng-size" min="120" max="400" step="10" value="240"><span id="v-size">240px</span></div>
+  <div id="stats">cargando…</div>
+</div>
 <div id="credit">Foto: <a href="https://commons.wikimedia.org/wiki/File:St_Etheldreda%27s_Church_Interior_360x180,_London,_UK_-_Diliff.jpg" target="_blank" rel="noopener">Diliff / Wikimedia Commons</a>, CC BY-SA 3.0 (reescalada y dividida en tiles)</div>
 
 <script type="importmap">
